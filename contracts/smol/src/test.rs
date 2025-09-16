@@ -20,7 +20,9 @@ use ed25519_dalek::SigningKey;
 use hex;
 use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{
-    testutils::Address as _, token, unwrap::UnwrapOptimized, xdr::ToXdr, Address, BytesN, Env,
+    testutils::Address as _, token, unwrap::UnwrapOptimized, xdr::{
+        AccountId, AlphaNum12, Asset, AssetCode12, FromXdr, Limits, PublicKey, ToXdr, Uint256, WriteXdr 
+    }, Address, Bytes, BytesN, Env, Symbol
 };
 
 extern crate std;
@@ -93,7 +95,7 @@ fn test_mint() {
     let client = create_contract(&env, &smol_issuer, &comet_factory, &base_asset.address());
 
     // Call the mint function
-    let minted_token_address = client.mint(&user);
+    let minted_token_address = client.mint(&user, &get_asset_bytes(&env, &client, &smol_issuer));
     let minted_token_client = token::Client::new(&env, &minted_token_address.0);
 
     // Verify that a token address was returned (should be a valid address)
@@ -101,7 +103,7 @@ fn test_mint() {
     println!("Minted token: {:?}", minted_token_client.symbol());
 
     // Verify that the mint function can be called multiple times without error and that the addresses are different
-    let second_mint_address = client.mint(&user);
+    let second_mint_address = client.mint(&user, &get_asset_bytes(&env, &client, &smol_issuer));
     let second_mint_client = token::Client::new(&env, &second_mint_address.0);
 
     assert_ne!(minted_token_address.0, second_mint_address.0);
@@ -120,4 +122,38 @@ fn test_mint() {
     println!("Amount out: {:?}", amount_out);
 
     assert_eq!(amount_out, 68_701_143_415591);
+}
+
+fn get_asset_bytes(env: &Env, client: &ContractClient, smol_issuer: &BytesN<32>) -> Bytes {
+    let asset = Asset::CreditAlphanum12(AlphaNum12 {
+        asset_code: counter_to_ascii(get_token_counter(&env, &client)),
+        issuer: AccountId(PublicKey::PublicKeyTypeEd25519(Uint256(
+            smol_issuer.to_array(),
+        ))),
+    });
+    
+    Bytes::from_slice(&env, &asset.to_xdr(Limits::none()).unwrap())
+}
+
+fn get_token_counter(env: &Env, client: &ContractClient) -> u64 {
+    env.as_contract(&client.address, || {
+        let token_counter: u64 = env.storage().instance().get(&Symbol::new(&env, "token_counter")).unwrap();
+        token_counter
+    })
+}
+
+fn counter_to_ascii(counter: u64) -> AssetCode12 {
+    // Convert counter to 12-character ASCII bytes array (zero-padded)
+    let mut code_bytes = [b'0'; 12]; // Start with all zeros
+    let mut pos = 11; // Start from the rightmost position
+    let mut num = counter;
+
+    // Convert number to ASCII digits from right to left
+    while num > 0 {
+        code_bytes[pos] = b'0' + (num % 10) as u8;
+        num /= 10;
+        pos = pos.saturating_sub(1);
+    }
+
+    AssetCode12(code_bytes)
 }

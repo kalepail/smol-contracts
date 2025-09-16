@@ -3,9 +3,7 @@
 use comet_factory::Client as CometFactoryClient;
 use soroban_sdk::{
     contract, contractimpl, token, vec,
-    xdr::{
-        AccountId, AlphaNum12, Asset, AssetCode12, FromXdr, Limits, PublicKey, Uint256, WriteXdr
-    },
+    xdr::{ FromXdr },
     Address, Bytes, BytesN, Env, Symbol,
 };
 
@@ -40,7 +38,7 @@ impl Contract {
             .instance()
             .set(&Symbol::new(&env, "base_asset"), &base_asset);
     }
-    pub fn mint(env: Env, user: Address) -> (Address, Address) {
+    pub fn mint(env: Env, user: Address, asset_bytes: Bytes) -> (Address, Address) {
         user.require_auth();
 
         let comet_factory: Address = env
@@ -77,16 +75,15 @@ impl Contract {
             .get(&Symbol::new(&env, "token_counter"))
             .unwrap();
 
-        let asset = Asset::CreditAlphanum12(AlphaNum12 {
-            asset_code: counter_to_ascii(counter),
-            issuer: AccountId(PublicKey::PublicKeyTypeEd25519(Uint256(
-                smol_issuer.to_array(),
-            ))),
-        });
+        let sac_deployer = env.deployer().with_stellar_asset(asset_bytes);
+        let sac_address: Address;
 
-        let asset_bytes = Bytes::from_slice(&env, &asset.to_xdr(Limits::none()).unwrap());
+        if sac_deployer.deployed_address().executable().is_none() {
+            sac_address = sac_deployer.deploy();
+        } else {
+            sac_address = sac_deployer.deployed_address();
+        }
 
-        let sac_address = env.deployer().with_stellar_asset(asset_bytes).deploy();
         let sac_client = token::StellarAssetClient::new(&env, &sac_address);
 
         // Mint 1M tokens to the user (creator)
@@ -119,22 +116,6 @@ impl Contract {
 
         (sac_address, comet_address)
     }
-}
-
-fn counter_to_ascii(counter: u64) -> AssetCode12 {
-    // Convert counter to 12-character ASCII bytes array (zero-padded)
-    let mut code_bytes = [b'0'; 12]; // Start with all zeros
-    let mut pos = 11; // Start from the rightmost position
-    let mut num = counter;
-
-    // Convert number to ASCII digits from right to left
-    while num > 0 {
-        code_bytes[pos] = b'0' + (num % 10) as u8;
-        num /= 10;
-        pos = pos.saturating_sub(1);
-    }
-
-    AssetCode12(code_bytes)
 }
 
 mod test;
