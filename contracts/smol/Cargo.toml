@@ -10,8 +10,11 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
+comet-factory = { workspace = true }
+soroban-fixed-point-math = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
-ed25519-dalek = "2.1"
-rand = "0.8"
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
+hex = { workspace = true }

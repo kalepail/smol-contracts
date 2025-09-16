@@ -14,3 +14,6 @@ fmt:
 
 clean:
 	cargo clean
+
+snapshot:
+	stellar snapshot create --network testnet --address GCEDG23LK46PHGXIY63E3ELQGBX6VHQ4EWLYT7FMLOOCIS3ZY2ITHDXB --address GCHPTWXMT3HYF4RLZHWBNRF4MPXLTJ76ISHMSYIWCCDXWUYOQG5MR2AB --output json
