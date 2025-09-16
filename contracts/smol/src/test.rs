@@ -13,37 +13,40 @@ mod comet {
 use comet::{Client as CometClient, WASM as COMET_WASM};
 use comet_factory::{Client as CometFactoryClient, WASM as COMET_FACTORY_WASM};
 
-use core::i128;
 use std::println;
 
-use ed25519_dalek::SigningKey;
 use hex;
 use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{
-    testutils::Address as _, token, unwrap::UnwrapOptimized, xdr::{
-        AccountId, AlphaNum12, Asset, AssetCode12, FromXdr, Limits, PublicKey, ToXdr, Uint256, WriteXdr 
-    }, Address, Bytes, BytesN, Env, Symbol
+    testutils::Address as _,
+    token,
+    unwrap::UnwrapOptimized,
+    xdr::{
+        AccountId, AlphaNum12, Asset, AssetCode12, Limits, PublicKey, ToXdr, Uint256,
+        WriteXdr,
+    },
+    Address, Bytes, BytesN, Env, 
 };
 
 extern crate std;
 use crate::{Contract, ContractArgs, ContractClient};
 
-fn generate_smol_issuer(env: &Env) -> BytesN<32> {
-    let signing_key = SigningKey::generate(&mut rand::thread_rng());
-    BytesN::from_array(env, &signing_key.verifying_key().to_bytes())
-}
-
-fn create_contract<'a>(
-    env: &Env,
-    smol_issuer: &BytesN<32>,
-    comet_factory: &Address,
-    base_asset: &Address,
-) -> ContractClient<'a> {
-    let contract_id = env.register(
-        Contract,
-        ContractArgs::__constructor(smol_issuer, comet_factory, base_asset),
+#[test]
+fn test() {
+    let env = Env::default();
+    let admin = Address::from_str(
+        &env,
+        "GCEDG23LK46PHGXIY63E3ELQGBX6VHQ4EWLYT7FMLOOCIS3ZY2ITHDXB",
     );
-    ContractClient::new(env, &contract_id)
+    let admin_bytes = admin.clone().to_xdr(&env);
+    let mut admin_array = [0u8; 32];
+    admin_bytes.slice(12..).copy_into_slice(&mut admin_array);
+
+    let smol_issuer = BytesN::from_array(&env, &admin_array);
+
+    let asset_bytes = get_asset_bytes(&env, 1, &smol_issuer);
+
+    println!("Asset bytes: {:?}", asset_bytes);
 }
 
 #[test]
@@ -61,11 +64,15 @@ fn test_mint() {
     let mut admin_array = [0u8; 32];
     admin_bytes.slice(12..).copy_into_slice(&mut admin_array);
 
+    println!("Admin array: {:?}", admin_array);
+
     let smol_issuer = BytesN::from_array(&env, &admin_array);
     let comet_factory = env.register_contract_wasm(None, COMET_FACTORY_WASM);
     env.register_contract_wasm(None, COMET_WASM);
     let base_asset = env.register_stellar_asset_contract_v2(admin.clone());
     let user = Address::generate(&env);
+
+    println!("Comet factory: {:?}", comet_factory);
 
     let base_asset_client = token::StellarAssetClient::new(&env, &base_asset.address());
     let comet_factory_client = CometFactoryClient::new(&env, &comet_factory);
@@ -92,10 +99,10 @@ fn test_mint() {
     base_asset_client.mint(&admin, &(base_amount * 2));
 
     // Create contract using helper function
-    let client = create_contract(&env, &smol_issuer, &comet_factory, &base_asset.address());
+    let client = create_contract(&env, &comet_factory, &base_asset.address());
 
     // Call the mint function
-    let minted_token_address = client.mint(&user, &get_asset_bytes(&env, &client, &smol_issuer));
+    let minted_token_address = client.mint(&user, &get_asset_bytes(&env, 0, &smol_issuer));
     let minted_token_client = token::Client::new(&env, &minted_token_address.0);
 
     // Verify that a token address was returned (should be a valid address)
@@ -103,7 +110,7 @@ fn test_mint() {
     println!("Minted token: {:?}", minted_token_client.symbol());
 
     // Verify that the mint function can be called multiple times without error and that the addresses are different
-    let second_mint_address = client.mint(&user, &get_asset_bytes(&env, &client, &smol_issuer));
+    let second_mint_address = client.mint(&user, &get_asset_bytes(&env, 1, &smol_issuer));
     let second_mint_client = token::Client::new(&env, &second_mint_address.0);
 
     assert_ne!(minted_token_address.0, second_mint_address.0);
@@ -124,22 +131,27 @@ fn test_mint() {
     assert_eq!(amount_out, 68_701_143_415591);
 }
 
-fn get_asset_bytes(env: &Env, client: &ContractClient, smol_issuer: &BytesN<32>) -> Bytes {
+fn get_asset_bytes(env: &Env, counter: u64, smol_issuer: &BytesN<32>) -> Bytes {
     let asset = Asset::CreditAlphanum12(AlphaNum12 {
-        asset_code: counter_to_ascii(get_token_counter(&env, &client)),
+        asset_code: counter_to_ascii(counter),
         issuer: AccountId(PublicKey::PublicKeyTypeEd25519(Uint256(
             smol_issuer.to_array(),
         ))),
     });
-    
+
     Bytes::from_slice(&env, &asset.to_xdr(Limits::none()).unwrap())
 }
 
-fn get_token_counter(env: &Env, client: &ContractClient) -> u64 {
-    env.as_contract(&client.address, || {
-        let token_counter: u64 = env.storage().instance().get(&Symbol::new(&env, "token_counter")).unwrap();
-        token_counter
-    })
+fn create_contract<'a>(
+    env: &Env,
+    comet_factory: &Address,
+    base_asset: &Address,
+) -> ContractClient<'a> {
+    let contract_id = env.register(
+        Contract,
+        ContractArgs::__constructor(comet_factory, base_asset),
+    );
+    ContractClient::new(env, &contract_id)
 }
 
 fn counter_to_ascii(counter: u64) -> AssetCode12 {
