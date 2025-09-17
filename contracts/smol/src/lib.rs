@@ -48,7 +48,7 @@ impl Contract {
         sac_client.admin().require_auth();
 
         // Mint 1M tokens to the user (creator)
-        let amount = 1_000_000_0000000; // 1M tokens with 7 decimal places
+        let amount = 1_000_000_0000000;
 
         sac_client.mint(&user, &amount);
 
@@ -60,8 +60,8 @@ impl Contract {
             &env.crypto().sha256(&asset_bytes).to_bytes(),
             &sac_client.admin(),
             &vec![&env, sac_address.clone(), base_asset],
-            &vec![&env, 80_00000, 20_00000],
-            &vec![&env, 99_000_000_0000000, 100_0000000],
+            &vec![&env, 90_00000, 10_00000],
+            &vec![&env, 9_000_000_0000000, 100_0000000],
             &10,
         );
 

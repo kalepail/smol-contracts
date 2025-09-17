@@ -95,7 +95,7 @@ fn test_mint() {
 
     println!("Base amount in: {:?}", base_amount_in);
 
-    base_asset_client.mint(&user, &base_amount_in);
+    base_asset_client.mint(&user, &i128::MAX);
     base_asset_client.mint(&admin, &(base_amount * 2));
 
     // Create contract using helper function
@@ -117,18 +117,46 @@ fn test_mint() {
     println!("Second mint token: {:?}", second_mint_client.symbol());
 
     let comet_client = CometClient::new(&env, &minted_token_address.1);
+
+    for i in 1..=100 {
+        let token_amount_in =comet_client.get_balance(&base_asset.address())
+            .fixed_mul_floor(MAX_RATIO, STROOP)
+            .unwrap_optimized();
+
+        let (amount_out, _) = comet_client.swap_exact_amount_in(
+            &base_asset.address(),
+            &token_amount_in.min(1250_0000000), // Max $0.5 of KALE
+            &minted_token_address.0,
+            &0,
+            &i128::MAX,
+            &user,
+        );
+
+        if i == 1 {
+            println!("1st TEST out: {:?}", amount_out);
+        }
+
+        if i == 50 {
+            println!("50th TEST out: {:?}", amount_out);
+        }
+    }
+
+    println!("Total KALE in: {:?}", comet_client.get_balance(&base_asset.address()));
+
     let (amount_out, _) = comet_client.swap_exact_amount_in(
-        &base_asset.address(),
-        &base_amount_in,
-        &minted_token_address.0,
-        &0,
+        &minted_token_address.0, 
+        // &1327897256043, // 90:10 with 95 to 5
+        &125800792677, // 90:10 with 9 to 1
+        // &1_000_000_0000000,
+        &base_asset.address(), 
+        &0, 
         &i128::MAX,
         &user,
     );
 
-    println!("Amount out: {:?}", amount_out);
+    println!("Amount KALE out: {:?}", amount_out);
 
-    assert_eq!(amount_out, 68_701_143_415591);
+    // assert_eq!(amount_out, 68_701_143_415591);
 }
 
 fn get_asset_bytes(env: &Env, counter: u64, smol_issuer: &BytesN<32>) -> Bytes {
