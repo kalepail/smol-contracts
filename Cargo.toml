@@ -9,6 +9,7 @@ soroban-sdk = "23.0.2"
 ed25519-dalek = "2.2"
 rand = "0.8"
 hex = "0.4"
+itertools = { version = "0.14", default-features = false }
 comet-factory = { git = "https://github.com/kalepail/comet-contracts-v1", package = "factory" }
 soroban-fixed-point-math = { git = "https://github.com/kalepail/soroban-fixed-point-math" }
 

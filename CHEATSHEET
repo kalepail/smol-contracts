@@ -1,5 +1,9 @@
-CDFRS3XCH5AV3NUTXQ33ISOOODRYURI4SL3G7F7RJKJT4A3QYKA73ITM
+stellar contract upload --wasm target/wasm32v1-none/release/smol.wasm --network testnet --source default
 
-stellar contract deploy --wasm ../../target/wasm32v1-none/release/smol.wasm --network testnet --source default -- --comet_factory CB3JTURDUIG2UNFJKXKU5P7R5CDS3V7RL2SZMN6IE75MXT2D7FJX5D7O --base_asset CAAVU2UQJLMZ3GUZFM56KVNHLPA3ZSSNR4VP2U53YBXFD2GI3QLIVHZZ
+stellar contract deploy --wasm target/wasm32v1-none/release/smol.wasm --network testnet --source default -- --admin default --comet_wasm 61e1fc5401a7b22418c2bd3bc5bd2c07241e4dae098c587c89f3f666aca12e37 --base_asset CAAVU2UQJLMZ3GUZFM56KVNHLPA3ZSSNR4VP2U53YBXFD2GI3QLIVHZZ
 
-stellar contract invoke --id CDFRS3XCH5AV3NUTXQ33ISOOODRYURI4SL3G7F7RJKJT4A3QYKA73ITM --network testnet --source SA3FD3NYLOV3JPXQYC66LLGIEBYQ4NSSG4RUNMMB53BVF75XCKNPZR3O -- mint --user default --asset_bytes "[0, 0, 0, 2, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0, 0, 0, 136, 51, 107, 107, 87, 60, 243, 154, 232, 199, 182, 77, 145, 112, 48, 111, 234, 158, 28, 37, 151, 137, 252, 172, 91, 156, 36, 75, 121, 198, 145, 51]"
+stellar contract invoke --id CBMMM3ZWOFJIOU5DO25EDXFGEKFB5LMBA4PPKPG4FJKJ3GVAQIM7CPA2 --network testnet --source default -- coin_it --user CBHPIWMF6LISPZ5EMHJHA7EIKL54FQ4ZBQTI7A6BZ45S5PVYTG2XB65W --asset_bytes 0000000231373538383234353635323900000000b42f82cb968ac2ce003db680d03ccdeafe137fbb5642e90afa2b7087c2611e29
+
+stellar contract invoke --id CBMMM3ZWOFJIOU5DO25EDXFGEKFB5LMBA4PPKPG4FJKJ3GVAQIM7CPA2 --network testnet --source default -- upgrade --wasm_hash e83d172964fada851552e4771ebe247cacb52c460d0d85159b4596270410aac4
+
+stellar contract bindings typescript --wasm target/wasm32v1-none/release/smol.wasm --output-dir bindings/smol-sdk --overwrite

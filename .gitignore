@@ -4,3 +4,7 @@ target
 # Local settings
 .soroban
 .stellar
+
+.DS_Store
+
+bindings/

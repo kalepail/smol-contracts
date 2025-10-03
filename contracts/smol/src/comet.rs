@@ -1,13 +1,18 @@
 #[soroban_sdk::contractargs(name = "Args")]
 #[soroban_sdk::contractclient(name = "Client")]
 pub trait Contract {
-    fn init(
+    fn __constructor(
         env: soroban_sdk::Env,
         controller: soroban_sdk::Address,
         tokens: soroban_sdk::Vec<soroban_sdk::Address>,
         weights: soroban_sdk::Vec<i128>,
         balances: soroban_sdk::Vec<i128>,
-        swap_fee: i128,
+        min_fee: i128,
+        max_fee: i128,
+        tracked_token: soroban_sdk::Address,
+        low_util_balance: i128,
+        high_util_balance: i128,
+        initial_fee_rule: Option<FeeRule>,
     );
     fn gulp(env: soroban_sdk::Env, t: soroban_sdk::Address);
     fn join_pool(
@@ -30,6 +35,7 @@ pub trait Contract {
         min_amount_out: i128,
         max_price: i128,
         user: soroban_sdk::Address,
+        trade_recipients: Option<soroban_sdk::Vec<FeeRecipient>>,
     ) -> (i128, i128);
     fn swap_exact_amount_out(
         env: soroban_sdk::Env,
@@ -39,6 +45,7 @@ pub trait Contract {
         token_amount_out: i128,
         max_price: i128,
         user: soroban_sdk::Address,
+        trade_recipients: Option<soroban_sdk::Vec<FeeRecipient>>,
     ) -> (i128, i128);
     fn dep_tokn_amt_in_get_lp_tokns_out(
         env: soroban_sdk::Env,
@@ -70,6 +77,8 @@ pub trait Contract {
     ) -> i128;
     fn set_controller(env: soroban_sdk::Env, manager: soroban_sdk::Address);
     fn set_freeze_status(env: soroban_sdk::Env, val: bool);
+    fn replace_fee_rule(env: soroban_sdk::Env, rule: FeeRule);
+    fn clear_fee_rule(env: soroban_sdk::Env);
     fn get_total_supply(env: soroban_sdk::Env) -> i128;
     fn get_controller(env: soroban_sdk::Env) -> soroban_sdk::Address;
     fn get_tokens(env: soroban_sdk::Env) -> soroban_sdk::Vec<soroban_sdk::Address>;
@@ -81,6 +90,8 @@ pub trait Contract {
         token_out: soroban_sdk::Address,
     ) -> i128;
     fn get_swap_fee(env: soroban_sdk::Env) -> i128;
+    fn get_swap_fee_config(env: soroban_sdk::Env) -> SwapFeeConfig;
+    fn get_fee_rule(env: soroban_sdk::Env) -> Option<FeeRule>;
     fn get_spot_price_sans_fee(
         env: soroban_sdk::Env,
         token_in: soroban_sdk::Address,
@@ -133,6 +144,27 @@ pub struct Record {
 }
 #[soroban_sdk::contracttype(export = false)]
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub struct SwapFeeConfig {
+    pub high_util_balance: i128,
+    pub low_util_balance: i128,
+    pub max_fee: i128,
+    pub min_fee: i128,
+    pub tracked_token: soroban_sdk::Address,
+}
+#[soroban_sdk::contracttype(export = true)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub struct FeeRecipient {
+    pub percent: i128,
+    pub recipient: soroban_sdk::Address,
+}
+#[soroban_sdk::contracttype(export = true)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub struct FeeRule {
+    pub fee_asset: soroban_sdk::Address,
+    pub recipients: soroban_sdk::Vec<FeeRecipient>,
+}
+#[soroban_sdk::contracttype(export = false)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AllowanceDataKey {
     pub from: soroban_sdk::Address,
     pub spender: soroban_sdk::Address,
@@ -153,9 +185,8 @@ pub struct TokenMetadata {
 #[soroban_sdk::contracttype(export = false)]
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum DataKey {
-    Factory,
     Controller,
-    SwapFee,
+    SwapFeeConfig,
     AllTokenVec,
     AllRecordData,
     TokenShare,
@@ -163,6 +194,7 @@ pub enum DataKey {
     PublicSwap,
     Finalize,
     Freeze,
+    FeeRule,
 }
 #[soroban_sdk::contracttype(export = false)]
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
@@ -214,6 +246,15 @@ pub enum Error {
     ErrInvalidExpirationLedger = 36,
     ErrNegativeOrZero = 37,
     ErrTokenInvalid = 38,
+    ErrInvalidFeeRecipient = 39,
+    ErrFeeRecipientCapExceeded = 40,
+    ErrFeeRecipientDuplicate = 41,
+    ErrFeeRecipientPercent = 42,
+    ErrFeeRecipientSum = 43,
+    ErrFeeAssetNotBound = 44,
+    ErrFeeRuleNotConfigured = 45,
+    ErrFeeRuleUnsupportedToken = 46,
+    ErrFeeDistribution = 47,
 }
 #[soroban_sdk::contractevent(topics = ["swap_event"], export = false)]
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]

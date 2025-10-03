@@ -64,7 +64,7 @@
           "asset": {
             "credit_alphanum4": {
               "asset_code": "aaa",
-              "issuer": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGO6V"
+              "issuer": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC6PV"
             }
           }
         }
@@ -78,7 +78,7 @@
               "asset": {
                 "credit_alphanum4": {
                   "asset_code": "aaa",
-                  "issuer": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGO6V"
+                  "issuer": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC6PV"
                 }
               },
               "balance": "0",

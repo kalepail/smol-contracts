@@ -12,6 +12,7 @@ doctest = false
 soroban-sdk = { workspace = true }
 comet-factory = { workspace = true }
 soroban-fixed-point-math = { workspace = true }
+itertools = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
